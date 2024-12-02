@@ -30,6 +30,10 @@ class InventoryBarang:
             self.form_frame, text="Tambah Barang", command=self.add_item
         ).grid(row=3, columnspan=2, pady=10)
 
+        self.button_frame = tk.Button(
+            self.form_frame, text="Edit Barang", command=self.edit_action
+        ).grid(row=4, columnspan=3, pady=10)
+
         self.table_frame = tk.Frame(self.root, padx=10, pady=10)
         self.table_frame.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
 
@@ -55,7 +59,50 @@ class InventoryBarang:
         self.refresh_button = tk.Button(self.button_frame, text="Refresh Data")
         self.refresh_button.pack(side=tk.LEFT, padx=5)
 
+        self.refresh_button = tk.Button(
+            self.button_frame, text="Edit Data", command=self.edit_item
+        )
+        self.refresh_button.pack(side=tk.LEFT, padx=5)
+
         self.load_items()
+
+    def edit_item(self):
+        selected_item = self.table.selection()
+        if not selected_item:
+            messagebox.showerror("Error", "Pilih barang yang ingin diubah")
+            return
+
+        item = self.table.item(selected_item[0])["values"]
+        self.nama_barang.insert(0, item[1])
+        self.jumlah_barang.insert(0, item[2])
+        self.harga_barang.insert(0, item[3])
+
+    def edit_action(self):
+        nama_barang = self.nama_barang.get()
+        jumlah_barang = self.jumlah_barang.get()
+        harga_barang = self.harga_barang.get()
+
+        if not nama_barang or not jumlah_barang or not harga_barang:
+            messagebox.showerror("Error", "Semua kolom harus diisi")
+            return
+
+        try:
+            jumlah = int(jumlah_barang)
+            harga = float(harga_barang)
+            selected_item = self.table.selection()[0]
+            item_id = self.table.item(selected_item)["values"][0]
+            self.db.execute(
+                "UPDATE items SET name = %s, quantity = %s, price = %s WHERE id = %s",
+                (nama_barang, jumlah, harga, item_id),
+            )
+
+            messagebox.showinfo("Sukses", "Barang berhasil ditambahkan")
+            self.load_items()
+            self.clear_form()
+        except ValueError:
+            messagebox.showerror("Error", "Jumlah dan harga harus berupa angka")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
 
     def load_items(self):
         for row in self.table.get_children():
@@ -70,6 +117,10 @@ class InventoryBarang:
         jumlah_barang = self.jumlah_barang.get()
         harga_barang = self.harga_barang.get()
 
+        if not nama_barang or not jumlah_barang or not harga_barang:
+            messagebox.showerror("Error", "Semua kolom harus diisi")
+            return
+
         try:
             jumlah = int(jumlah_barang)
             harga = float(harga_barang)
@@ -80,6 +131,7 @@ class InventoryBarang:
 
             messagebox.showinfo("Sukses", "Barang berhasil ditambahkan")
             self.load_items()
+            self.clear_form()
         except ValueError:
             messagebox.showerror("Error", "Jumlah dan harga harus berupa angka")
         except Exception as e:
@@ -91,13 +143,18 @@ class InventoryBarang:
             messagebox.showerror("Error", "Pilih barang yang ingin dihapus")
             return
 
-        item_id = self.table.item(selected_item)["values"][0]
+        item_id = self.table.item(selected_item[0])["values"][0]
         try:
             self.db.execute("DELETE FROM items WHERE id = %s", (item_id,))
             messagebox.showinfo("Sukses", "Barang berhasil dihapus")
             self.load_items()
         except Exception as e:
             messagebox.showerror("Error", str(e))
+
+    def clear_form(self):
+        self.nama_barang.delete(0, tk.END)
+        self.jumlah_barang.delete(0, tk.END)
+        self.harga_barang.delete(0, tk.END)
 
 
 def main():
